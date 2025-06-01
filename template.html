@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analysis</title>
+    <!-- Link to our local CSS file -->
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body id="top">
+    <div class="outer">
+        <!-- Mobile navigation toggle -->
+        <div class="mobile-nav-toggle">
+            <button id="menu-toggle" aria-label="Toggle navigation menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+        <div class="page-area">
+                <nav class="sidebar">
+                    <div class="group">
+                        <div class="sb-section">Documentation</div>
+                        <ul>
+                            <li>
+                                <img
+                                    src="img/icon-introduction.svg"
+                                    alt=""
+                                    class="icon"
+                                /><a class="active" href="#">Dia into Arc</a>
+                            </li>
+                            <li>
+                                <img
+                                    src="img/icon-introduction.svg"
+                                    alt=""
+                                    class="icon"
+                                /><a href="contents/01.html">Opera Ai</a>
+                            </li>
+                            <li>
+                                <img
+                                    src="img/icon-introduction.svg"
+                                    alt=""
+                                    class="icon"
+                                /><a href="contents/02.html">iOS 18</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <!-- Navigation items removed -->
+                </nav>
+            <main class="content-main">
+                <h1>The Browser Company explains why it stopped developing Arc</h1>
+                <div class="subhead">
+                    The Browser Company moved on to Dia because Arc was just too different.
+                </div>
+                <div class="article-meta">
+                    By <a href="https://www.theverge.com/authors/wes-davis">Wes Davis</a> • May 28, 2025 • <a href="#">Tech</a>
+                </div>
+                <div class="article-content">
+                    <figure class="article-image">
+                        <img src="jpg/Arc-browser.jpeg" alt="Arc browser interface" style="max-width: 100%; border-radius: 8px; margin: 1.5rem 0;">
+                        <figcaption>The Arc browser interface, which will no longer receive new features. (Image: The Browser Company)</figcaption>
+                    </figure>
+                    
+                    <p>The Browser Company has said repeatedly that it's not getting rid of the Arc browser as it moves onto its new AI-centric Dia browser. But what the company also not going to do is develop new features for it. A <a href="https://browsercompany.substack.com/p/letter-to-arc-members-2025">new blog post</a> from CEO Josh Miller explains why, and what happens next.</p>
+                    
+                    <p>The Arc browser was a big rethink of what browsers should be like, and it has dedicated users, including yours truly. But a lot of the reasons for ceasing Arc's development that Miller gives in the blog — like that it's too complicated to go mainstream, that it was slow and unstable at times (true!), or that The Browser Company wants to recenter the experience on AI — he also <a href="https://www.theverge.com/2024/10/24/24279020/browser-company-ai-browser-arc">gave back in October</a>.</p>
+                    
+                    <h2 id="why-not-just-roll-dia-into-arc">Why not just roll Dia into Arc?</h2>
+                    
+                    <p>One big thing Miller mentions is security. Arc has had at least one big security issue: a security researcher <a href="https://www.theverge.com/2024/9/20/24249919/arc-browser-boost-firebase-vulnerability-patched">discovered a vulnerability last year</a> that The Browser Company quickly patched, but which let attackers insert arbitrary code into a users' browser session just by knowing their user ID. According to Miller, The Browser Company has now grown its security engineering team from one person to five. This focus is particularly important, he writes, as AI agents — AI systems that carry out tasks autonomously — become more prevalent.</p>
+                    
+                    <p>As for what this all means for Arc and its users, Miller still insists that the browser won't go away. Arc will still get security and bug fixes, and will be tweaked as the Chromium code it's based on is updated. But he also says The Browser Company isn't going to open-source or sell Arc, because in addition to Chromium, it's built on a custom infrastructure that also underpins Dia. He says the company would like to open the browser up someday, but not until "it no longer puts our team or shareholders at risk."</p>
+                    
+                    <p>The Browser Company didn't immediately respond when The Verge asked whether that same bigger security team is also working to shore up the security of Arc itself. We will update as we learn more.</p>
+                </div>
+                
+                <div class="tags">
+                    <a href="#" class="tag">Tech</a>
+                    <a href="#" class="tag">Web Browsers</a>
+                    <a href="#" class="tag">AI</a>
+                    <a href="#" class="tag">Software Development</a>
+                </div>
+                </main>
+            <aside class="rightbar">
+                <div class="rt-head">
+                    <img
+                        src="img/icon-introduction.svg"
+                        alt=""
+                        class="icon"
+                    />
+                    On this page
+                </div>
+                <ul class="toc-list">
+                    <li><a href="#top" id="back-to-top">Back to top ↑</a></li>
+                    <li class="toc-divider"></li>
+                    <li><a href="#why-not-just-roll-dia-into-arc">Why not just roll Dia into Arc?</a></li>
+                </ul>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Reference to external JavaScript file for menu functionality -->
+    <script src="js/menu.js"></script>
+</body>
+</html>
