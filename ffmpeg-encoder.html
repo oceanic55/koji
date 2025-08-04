@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFmpeg Video Encoder - Quality Focused</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .panel h2 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+
+        .parameter-group {
+            margin-bottom: 25px;
+        }
+
+        .parameter-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .parameter-value {
+            background: #4299e1;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .slider-container {
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #e2e8f0;
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4299e1;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4299e1;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        .parameter-description {
+            font-size: 0.85rem;
+            color: #718096;
+            line-height: 1.4;
+            margin-top: 5px;
+        }
+
+        .select-container {
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .custom-select {
+            width: 100%;
+            padding: 10px 40px 10px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            font-size: 1rem;
+            color: #2d3748;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .custom-select:focus {
+            border-color: #4299e1;
+        }
+
+        .preview-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            background: #f7fafc;
+            border: 2px dashed #cbd5e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: #718096;
+        }
+
+        .quality-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border-left: 4px solid #4299e1;
+        }
+
+        .quality-metric {
+            text-align: center;
+        }
+
+        .quality-metric .label {
+            font-size: 0.8rem;
+            color: #718096;
+            margin-bottom: 5px;
+        }
+
+        .quality-metric .value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #2d3748;
+        }
+
+        .command-output {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .copy-button {
+            background: #48bb78;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .copy-button:hover {
+            background: #38a169;
+        }
+
+        .adaptive-quantization {
+            background: #fff5e6;
+            border: 2px solid #ffa726;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .adaptive-quantization h3 {
+            color: #e65100;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .panel {
+                padding: 20px;
+            }
+        }
+
+        .warning-box {
+            background: #fed7d7;
+            border: 1px solid #feb2b2;
+            color: #c53030;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .info-box {
+            background: #e6fffa;
+            border: 1px solid #81e6d9;
+            color: #285e61;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 FFmpeg Video Encoder</h1>
+            <p>High-Quality Video Encoding with Adaptive Quantization Focus</p>
+        </div>
+
+        <div class="main-grid">
+            <!-- Parameters Panel -->
+            <div class="panel">
+                <h2>Encoding Parameters</h2>
+                
+                <!-- Output Resolution -->
+                <div class="parameter-group">
+                    <div class="parameter-label">
+                        <span>Output Resolution</span>
+                        <span class="parameter-value" id="resolution-value">1920×1080</span>
+                    </div>
+                    <div class="select-container">
+                        <select class="custom-select" id="resolution-select">
+                            <option value="3840:2160">4K UHD (3840×2160)</option>
+                            <option value="2560:1440">1440p (2560×1440)</option>
+                            <option value="1920:1080" selected>1080p (1920×1080)</option>
+                            <option value="1280:720">720p (1280×720)</option>
+                            <option value="854:480">480p (854×480)</option>
+                        </select>
+                    </div>
+                    <div class="parameter-description">Target output resolution. Higher resolutions produce larger files.</div>
+                </div>
+
+                <!-- CRF -->
+                <div class="parameter-group">
+                    <div class="parameter-label">
+                        <span>CRF (Constant Rate Factor)</span>
+                        <span class="parameter-value" id="crf-value">23</span>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="crf-slider" min="0" max="51" value="23" step="1">
+                    </div>
+                    <div class="parameter-description">Controls output quality and compression. Lower values = higher quality, larger files.</div>
+                    <div class="info-box">
+                        <strong>Recommended:</strong> 18-28 for high quality, 15-23 for visually lossless
+                    </div>
+                </div>
+
+                <!-- Preset -->
+                <div class="parameter-group">
+                    <div class="parameter-label">
+                        <span>Encoding Preset</span>
+                        <span class="parameter-value" id="preset-value">medium</span>
+                    </div>
+                    <div class="select-container">
+                        <select class="custom-select" id="preset-select">
+                            <option value="placebo">placebo (slowest, best compression)</option>
+                            <option value="veryslow">veryslow</option>
+                            <option value="slower">slower</option>
+                            <option value="slow">slow</option>
+                            <option value="medium" selected>medium (balanced)</option>
+                            <option value="fast">fast</option>
+                            <option value="faster">faster</option>
+                            <option value="veryfast">veryfast</option>
+                            <option value="superfast">superfast</option>
+                            <option value="ultrafast">ultrafast (fastest, worst compression)</option>
+                        </select>
+                    </div>
+                    <div class="parameter-description">Balances encoding speed and compression efficiency. Slower presets provide better compression.</div>
+                </div>
+
+                <!-- Pixel Format -->
+                <div class="parameter-group">
+                    <div class="parameter-label">
+                        <span>Pixel Format</span>
+                        <span class="parameter-value" id="pixfmt-value">yuv420p</span>
+                    </div>
+                    <div class="select-container">
+                        <select class="custom-select" id="pixfmt-select">
+                            <option value="yuv420p" selected>yuv420p (Standard, most compatible)</option>
+                            <option value="yuv422p">yuv422p (Better chroma, larger files)</option>
+                            <option value="yuv444p">yuv444p (Full chroma, largest files)</option>
+                            <option value="yuv420p10le">yuv420p10le (10-bit, HDR support)</option>
+                            <option value="yuv422p10le">yuv422p10le (10-bit, better chroma)</option>
+                        </select>
+                    </div>
+                    <div class="parameter-description">Color depth and chroma subsampling. yuv444p preserves most color detail.</div>
+                </div>
+
+                <!-- Adaptive Quantization Section -->
+                <div class="adaptive-quantization">
+                    <h3>🎯 Adaptive Quantization (Critical for Detail)</h3>
+                    
+                    <!-- AQ Mode -->
+                    <div class="parameter-group">
+                        <div class="parameter-label">
+                            <span>AQ Mode</span>
+                            <span class="parameter-value" id="aq-mode-value">1</span>
+                        </div>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="aq-mode-slider" min="0" max="3" value="1" step="1">
+                        </div>
+                        <div class="parameter-description">
+                            <strong>0:</strong> Disabled | <strong>1:</strong> Variance-based (default) | <strong>2:</strong> Excels for complex scenes with fine details | <strong>3:</strong> Experimental
+                        </div>
+                    </div>
+
+                    <!-- AQ Strength -->
+                    <div class="parameter-group">
+                        <div class="parameter-label">
+                            <span>AQ Strength</span>
+                            <span class="parameter-value" id="aq-strength-value">1.0</span>
+                        </div>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="aq-strength-slider" min="0" max="3" value="1.0" step="0.1">
+                        </div>
+                        <div class="parameter-description">Controls AQ strength. Higher values preserve more detail in complex regions.</div>
+                        <div class="info-box">
+                            <strong>Recommended:</strong> 0.8-1.5 for detailed content, up to 2.0 for very complex scenes
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tune -->
+                <div class="parameter-group">
+                    <div class="parameter-label">
+                        <span>Tune</span>
+                        <span class="parameter-value" id="tune-value">film</span>
+                    </div>
+                    <div class="select-container">
+                        <select class="custom-select" id="tune-select">
+                            <option value="">none (default)</option>
+                            <option value="film" selected>film (live-action content)</option>
+                            <option value="animation">animation (animated content)</option>
+                            <option value="grain">grain (preserves film grain)</option>
+                            <option value="stillimage">stillimage (slideshow content)</option>
+                            <option value="fastdecode">fastdecode (faster playback)</option>
+                            <option value="zerolatency">zerolatency (streaming)</option>
+                        </select>
+                    </div>
+                    <div class="parameter-description">Optimizes encoding for specific content types. 'film' is ideal for most live-action videos.</div>
+                </div>
+            </div>
+
+            <!-- Preview & Output Panel -->
+            <div class="panel">
+                <h2>Preview & Output</h2>
+                
+                <div class="preview-container">
+                    <div class="preview-image" id="preview-image">
+                        📽️ Sample Frame Preview<br>
+                        <small style="opacity: 0.7;">Upload a video to see preview</small>
+                    </div>
+                </div>
+
+                <div class="quality-indicator">
+                    <div class="quality-metric">
+                        <div class="label">Quality Level</div>
+                        <div class="value" id="quality-level">High</div>
+                    </div>
+                    <div class="quality-metric">
+                        <div class="label">File Size</div>
+                        <div class="value" id="file-size">Medium</div>
+                    </div>
+                    <div class="quality-metric">
+                        <div class="label">Encoding Speed</div>
+                        <div class="value" id="encoding-speed">Medium</div>
+                    </div>
+                </div>
+
+                <div class="parameter-group">
+                    <div class="parameter-label">
+                        <span>Input File</span>
+                    </div>
+                    <input type="file" id="video-input" accept="video/*" style="margin-bottom: 10px; width: 100%; padding: 8px; border: 2px solid #e2e8f0; border-radius: 6px;">
+                    <div class="parameter-description">Select a video file to generate preview frames</div>
+                </div>
+
+                <h3 style="margin: 20px 0 10px 0; color: #4a5568;">Generated FFmpeg Command:</h3>
+                <div class="command-output" id="ffmpeg-command">
+                    ffmpeg -i input.mp4 -vf "scale=1920:1080" -c:v libx264 -crf 23 -preset medium -pix_fmt yuv420p -aq-mode 1 -aq-strength 1.0 -tune film output.mp4
+                </div>
+                <button class="copy-button" onclick="copyCommand()">📋 Copy Command</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Parameter values
+        let parameters = {
+            resolution: '1920:1080',
+            crf: 23,
+            preset: 'medium',
+            pixfmt: 'yuv420p',
+            aqMode: 1,
+            aqStrength: 1.0,
+            tune: 'film'
+        };
+
+        // Quality presets for different CRF values
+        const qualityLevels = {
+            'Lossless': { crf: [0, 15], size: 'Very Large', speed: 'Very Slow' },
+            'Visually Lossless': { crf: [16, 20], size: 'Large', speed: 'Slow' },
+            'High': { crf: [21, 25], size: 'Medium', speed: 'Medium' },
+            'Good': { crf: [26, 30], size: 'Small', speed: 'Fast' },
+            'Fair': { crf: [31, 40], size: 'Very Small', speed: 'Very Fast' },
+            'Poor': { crf: [41, 51], size: 'Tiny', speed: 'Ultra Fast' }
+        };
+
+        // Speed ratings for presets
+        const presetSpeeds = {
+            'placebo': 'Extremely Slow',
+            'veryslow': 'Very Slow',
+            'slower': 'Slow',
+            'slow': 'Moderately Slow',
+            'medium': 'Medium',
+            'fast': 'Fast',
+            'faster': 'Faster',
+            'veryfast': 'Very Fast',
+            'superfast': 'Super Fast',
+            'ultrafast': 'Ultra Fast'
+        };
+
+        // Initialize event listeners
+        function initializeEventListeners() {
+            // Resolution
+            document.getElementById('resolution-select').addEventListener('change', function() {
+                parameters.resolution = this.value;
+                updateResolutionDisplay();
+                updateCommand();
+                updateQualityMetrics();
+            });
+
+            // CRF
+            document.getElementById('crf-slider').addEventListener('input', function() {
+                parameters.crf = parseInt(this.value);
+                updateCrfDisplay();
+                updateCommand();
+                updateQualityMetrics();
+            });
+
+            // Preset
+            document.getElementById('preset-select').addEventListener('change', function() {
+                parameters.preset = this.value;
+                updatePresetDisplay();
+                updateCommand();
+                updateQualityMetrics();
+            });
+
+            // Pixel Format
+            document.getElementById('pixfmt-select').addEventListener('change', function() {
+                parameters.pixfmt = this.value;
+                updatePixfmtDisplay();
+                updateCommand();
+                updateQualityMetrics();
+            });
+
+            // AQ Mode
+            document.getElementById('aq-mode-slider').addEventListener('input', function() {
+                parameters.aqMode = parseInt(this.value);
+                updateAqModeDisplay();
+                updateCommand();
+            });
+
+            // AQ Strength
+            document.getElementById('aq-strength-slider').addEventListener('input', function() {
+                parameters.aqStrength = parseFloat(this.value);
+                updateAqStrengthDisplay();
+                updateCommand();
+            });
+
+            // Tune
+            document.getElementById('tune-select').addEventListener('change', function() {
+                parameters.tune = this.value;
+                updateTuneDisplay();
+                updateCommand();
+            });
+
+            // Video input
+            document.getElementById('video-input').addEventListener('change', handleVideoUpload);
+        }
+
+        // Update display functions
+        function updateResolutionDisplay() {
+            const resolution = parameters.resolution.replace(':', '×');
+            document.getElementById('resolution-value').textContent = resolution;
+        }
+
+        function updateCrfDisplay() {
+            document.getElementById('crf-value').textContent = parameters.crf;
+            
+            // Add warning for extreme values
+            const crfSlider = document.getElementById('crf-slider');
+            const existingWarning = crfSlider.parentNode.querySelector('.warning-box');
+            if (existingWarning) {
+                existingWarning.remove();
+            }
+            
+            if (parameters.crf < 16) {
+                const warning = document.createElement('div');
+                warning.className = 'warning-box';
+                warning.textContent = '⚠️ Very low CRF values result in extremely large files with minimal quality gains.';
+                crfSlider.parentNode.appendChild(warning);
+            } else if (parameters.crf > 30) {
+                const warning = document.createElement('div');
+                warning.className = 'warning-box';
+                warning.textContent = '⚠️ High CRF values may result in visible quality loss, especially in detailed scenes.';
+                crfSlider.parentNode.appendChild(warning);
+            }
+        }
+
+        function updatePresetDisplay() {
+            document.getElementById('preset-value').textContent = parameters.preset;
+        }
+
+        function updatePixfmtDisplay() {
+            document.getElementById('pixfmt-value').textContent = parameters.pixfmt;
+        }
+
+        function updateAqModeDisplay() {
+            document.getElementById('aq-mode-value').textContent = parameters.aqMode;
+        }
+
+        function updateAqStrengthDisplay() {
+            document.getElementById('aq-strength-value').textContent = parameters.aqStrength.toFixed(1);
+        }
+
+        function updateTuneDisplay() {
+            document.getElementById('tune-value').textContent = parameters.tune || 'none';
+        }
+
+        // Update quality metrics
+        function updateQualityMetrics() {
+            // Determine quality level based on CRF
+            let qualityLevel = 'Unknown';
+            let fileSize = 'Unknown';
+            
+            for (const [level, data] of Object.entries(qualityLevels)) {
+                if (parameters.crf >= data.crf[0] && parameters.crf <= data.crf[1]) {
+                    qualityLevel = level;
+                    fileSize = data.size;
+                    break;
+                }
+            }
+
+            // Adjust for resolution
+            if (parameters.resolution === '3840:2160') {
+                fileSize = fileSize === 'Very Small' ? 'Small' : 
+                          fileSize === 'Small' ? 'Medium' : 
+                          fileSize === 'Medium' ? 'Large' : 
+                          fileSize === 'Large' ? 'Very Large' : 'Extremely Large';
+            } else if (parameters.resolution === '854:480') {
+                fileSize = fileSize === 'Very Large' ? 'Large' : 
+                          fileSize === 'Large' ? 'Medium' : 
+                          fileSize === 'Medium' ? 'Small' : 
+                          fileSize === 'Small' ? 'Very Small' : 'Tiny';
+            }
+
+            document.getElementById('quality-level').textContent = qualityLevel;
+            document.getElementById('file-size').textContent = fileSize;
+            document.getElementById('encoding-speed').textContent = presetSpeeds[parameters.preset] || 'Medium';
+        }
+
+        // Update FFmpeg command
+        function updateCommand() {
+            let command = 'ffmpeg -i input.mp4';
+            
+            // Video filter for scaling
+            command += ` -vf "scale=${parameters.resolution}"`;
+            
+            // Video codec
+            command += ' -c:v libx264';
+            
+            // CRF
+            command += ` -crf ${parameters.crf}`;
+            
+            // Preset
+            command += ` -preset ${parameters.preset}`;
+            
+            // Pixel format
+            command += ` -pix_fmt ${parameters.pixfmt}`;
+            
+            // Adaptive quantization
+            if (parameters.aqMode > 0) {
+                command += ` -aq-mode ${parameters.aqMode}`;
+                command += ` -aq-strength ${parameters.aqStrength}`;
+            }
+            
+            // Tune
+            if (parameters.tune) {
+                command += ` -tune ${parameters.tune}`;
+            }
+            
+            // Output
+            command += ' output.mp4';
+            
+            document.getElementById('ffmpeg-command').textContent = command;
+        }
+
+        // Handle video upload and preview
+        function handleVideoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const video = document.createElement('video');
+                video.src = URL.createObjectURL(file);
+                video.addEventListener('loadeddata', function() {
+                    // Create canvas to extract frame
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Set canvas size to match video
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    
+                    // Seek to 10% of video duration for preview
+                    video.currentTime = video.duration * 0.1;
+                    
+                    video.addEventListener('seeked', function() {
+                        // Draw frame to canvas
+                        ctx.drawImage(video, 0, 0);
+                        
+                        // Convert to image and display
+                        const previewImg = document.createElement('img');
+                        previewImg.src = canvas.toDataURL();
+                        previewImg.style.width = '100%';
+                        previewImg.style.height = '300px';
+                        previewImg.style.objectFit = 'cover';
+                        previewImg.style.borderRadius = '10px';
+                        
+                        const previewContainer = document.getElementById('preview-image');
+                        previewContainer.innerHTML = '';
+                        previewContainer.appendChild(previewImg);
+                        
+                        // Cleanup
+                        URL.revokeObjectURL(video.src);
+                    });
+                });
+            }
+        }
+
+        // Copy command to clipboard
+        function copyCommand() {
+            const command = document.getElementById('ffmpeg-command').textContent;
+            navigator.clipboard.writeText(command).then(() => {
+                const button = document.querySelector('.copy-button');
+                const originalText = button.textContent;
+                button.textContent = '✅ Copied!';
+                button.style.background = '#48bb78';
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '#48bb78';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy command. Please select and copy manually.');
+            });
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+            updateCommand();
+            updateQualityMetrics();
+            updateResolutionDisplay();
+            updateCrfDisplay();
+            updatePresetDisplay();
+            updatePixfmtDisplay();
+            updateAqModeDisplay();
+            updateAqStrengthDisplay();
+            updateTuneDisplay();
+        });
+    </script>
+</body>
+</html>
