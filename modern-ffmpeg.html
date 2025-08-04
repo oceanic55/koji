@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern FFMPEG Encoder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(120, 199, 255, 0.3) 0%, transparent 50%),
+                linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #ffffff;
+            backdrop-filter: blur(20px);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 30% 30%, rgba(138, 43, 226, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 70% 70%, rgba(30, 144, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            background: linear-gradient(135deg, #4299e1, #3182ce);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.12),
+                0 2px 8px rgba(0, 0, 0, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        }
+
+        .panel h2 {
+            color: rgba(255, 255, 255, 0.95);
+            margin-bottom: 24px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 12px;
+        }
+
+        .parameter-group {
+            margin-bottom: 25px;
+        }
+
+        .parameter-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95rem;
+        }
+
+        .parameter-value {
+            background: rgba(66, 153, 225, 0.8);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            min-width: 70px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 2px 8px rgba(66, 153, 225, 0.3);
+        }
+
+        .slider-container {
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #4299e1, #3182ce);
+            cursor: pointer;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 
+                0 4px 12px rgba(66, 153, 225, 0.4),
+                0 2px 4px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 
+                0 6px 16px rgba(66, 153, 225, 0.5),
+                0 2px 4px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        }
+
+        .parameter-description {
+            font-size: 0.82rem;
+            color: rgba(255, 255, 255, 0.65);
+            line-height: 1.5;
+            margin-top: 8px;
+            font-weight: 400;
+        }
+
+        .custom-select {
+            width: 100%;
+            padding: 12px 40px 12px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px) saturate(180%);
+            -webkit-backdrop-filter: blur(10px) saturate(180%);
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.9);
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 12px;
+        }
+
+        .custom-select:focus {
+            border-color: rgba(66, 153, 225, 0.6);
+            box-shadow: 
+                0 0 0 3px rgba(66, 153, 225, 0.2),
+                0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .custom-select:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .adaptive-quantization {
+            background: rgba(255, 165, 0, 0.08);
+            backdrop-filter: blur(15px) saturate(180%);
+            -webkit-backdrop-filter: blur(15px) saturate(180%);
+            border: 1px solid rgba(255, 165, 0, 0.3);
+            border-radius: 18px;
+            padding: 24px;
+            margin: 20px 0;
+            box-shadow: 
+                0 4px 16px rgba(255, 165, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .adaptive-quantization h3 {
+            color: rgba(255, 165, 0, 0.95);
+            margin-bottom: 16px;
+            font-size: 1.15rem;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 16px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.12),
+                0 2px 8px rgba(0, 0, 0, 0.08);
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .preview-comparison {
+            display: none;
+        }
+
+        .quality-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px) saturate(180%);
+            -webkit-backdrop-filter: blur(15px) saturate(180%);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 
+                0 4px 16px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .quality-metric {
+            text-align: center;
+            flex: 1;
+        }
+
+        .quality-metric .label {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+
+        .quality-metric .value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.95);
+            background: linear-gradient(135deg, #4299e1, #3182ce);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .command-output {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            color: rgba(255, 255, 255, 0.9);
+            padding: 24px;
+            border-radius: 16px;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                0 4px 16px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .copy-button {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 
+                0 4px 12px rgba(72, 187, 120, 0.3),
+                0 2px 4px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .copy-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 6px 16px rgba(72, 187, 120, 0.4),
+                0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+
+        .file-input {
+            margin-bottom: 12px;
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+
+        .info-box {
+            background: rgba(129, 230, 217, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(40, 94, 97, 0.3);
+            color: rgba(129, 230, 217, 0.9);
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 12px;
+            font-size: 0.85rem;
+            box-shadow: 0 2px 8px rgba(40, 94, 97, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .panel {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>FFMPEG</h1>
+            <p>High-Quality Video Encoding with Modern Glass UI</p>
+        </div>
+
+        <div class="main-grid">
+            <!-- Parameters Panel -->
+            <div class="panel">
+                <h2>Encoding Parameters</h2>
+                
+                <!-- Output Resolution -->
+                <div class="parameter-group">
+                    <div class="parameter-label">
+                        <span>Output Resolution</span>
+                        <span class="parameter-value" id="resolution-value">1920×1080</span>
+                    </div>
+                    <select class="custom-select" id="resolution-select">
+                        <option value="3840:2160">4K UHD (3840×2160)</option>
+                        <option value="2560:1440">1440p (2560×1440)</option>
+                        <option value="1920:1080" selected>1080p (1920×1080)</option>
+                        <option value="1280:720">720p (1280×720)</option>
+                        <option value="854:480">480p (854×480)</option>
+                    </select>
+                    <div class="parameter-description">Target output resolution. Higher resolutions produce larger files.</div>
+                </div>
+
+                <!-- CRF -->
+                <div class="parameter-group">
+                    <div class="parameter-label">
+                        <span>CRF (Constant Rate Factor)</span>
+                        <span class="parameter-value" id="crf-value">23</span>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="crf-slider" min="0" max="51" value="23" step="1">
+                    </div>
+                    <div class="parameter-description">Controls output quality and compression. Lower values = higher quality, larger files.</div>
+                    <div class="info-box">
+                        <strong>Recommended:</strong> 18-28 for high quality, 15-23 for visually lossless
+                    </div>
+                </div>
+
+                <!-- Preset -->
+                <div class="parameter-group">
+                    <div class="parameter-label">
+                        <span>Encoding Preset</span>
+                        <span class="parameter-value" id="preset-value">medium</span>
+                    </div>
+                    <select class="custom-select" id="preset-select">
+                        <option value="placebo">placebo (slowest, best compression)</option>
+                        <option value="veryslow">veryslow</option>
+                        <option value="slower">slower</option>
+                        <option value="slow">slow</option>
+                        <option value="medium" selected>medium (balanced)</option>
+                        <option value="fast">fast</option>
+                        <option value="faster">faster</option>
+                        <option value="veryfast">veryfast</option>
+                        <option value="superfast">superfast</option>
+                        <option value="ultrafast">ultrafast (fastest, worst compression)</option>
+                    </select>
+                    <div class="parameter-description">Balances encoding speed and compression efficiency. Slower presets provide better compression.</div>
+                </div>
+
+                <!-- Pixel Format -->
+                <div class="parameter-group">
+                    <div class="parameter-label">
+                        <span>Pixel Format</span>
+                        <span class="parameter-value" id="pixfmt-value">yuv420p</span>
+                    </div>
+                    <select class="custom-select" id="pixfmt-select">
+                        <option value="yuv420p" selected>yuv420p (Standard, most compatible)</option>
+                        <option value="yuv422p">yuv422p (Better chroma, larger files)</option>
+                        <option value="yuv444p">yuv444p (Full chroma, largest files)</option>
+                        <option value="yuv420p10le">yuv420p10le (10-bit, HDR support)</option>
+                        <option value="yuv422p10le">yuv422p10le (10-bit, better chroma)</option>
+                    </select>
+                    <div class="parameter-description">Color depth and chroma subsampling. yuv444p preserves most color detail.</div>
+                </div>
+
+                <!-- Adaptive Quantization Section -->
+                <div class="adaptive-quantization">
+                    <h3>🎯 Adaptive Quantization (Critical for Detail)</h3>
+                    
+                    <!-- AQ Mode -->
+                    <div class="parameter-group">
+                        <div class="parameter-label">
+                            <span>AQ Mode</span>
+                            <span class="parameter-value" id="aq-mode-value">1</span>
+                        </div>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="aq-mode-slider" min="0" max="3" value="1" step="1">
+                        </div>
+                        <div class="parameter-description">
+                            <strong>0:</strong> Disabled | <strong>1:</strong> Variance-based (default) | <strong>2:</strong> Excels for complex scenes with fine details | <strong>3:</strong> Experimental
+                        </div>
+                    </div>
+
+                    <!-- AQ Strength -->
+                    <div class="parameter-group">
+                        <div class="parameter-label">
+                            <span>AQ Strength</span>
+                            <span class="parameter-value" id="aq-strength-value">1.0</span>
+                        </div>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="aq-strength-slider" min="0" max="3" value="1.0" step="0.1">
+                        </div>
+                        <div class="parameter-description">Controls AQ strength. Higher values preserve more detail in complex regions.</div>
+                        <div class="info-box">
+                            <strong>Recommended:</strong> 0.8-1.5 for detailed content, up to 2.0 for very complex scenes
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tune -->
+                <div class="parameter-group">
+                    <div class="parameter-label">
+                        <span>Tune</span>
+                        <span class="parameter-value" id="tune-value">film</span>
+                    </div>
+                    <select class="custom-select" id="tune-select">
+                        <option value="">none (default)</option>
+                        <option value="film" selected>film (live-action content)</option>
+                        <option value="animation">animation (animated content)</option>
+                        <option value="grain">grain (preserves film grain)</option>
+                        <option value="stillimage">stillimage (slideshow content)</option>
+                        <option value="fastdecode">fastdecode (faster playback)</option>
+                        <option value="zerolatency">zerolatency (streaming)</option>
+                    </select>
+                    <div class="parameter-description">Optimizes encoding for specific content types. 'film' is ideal for most live-action videos.</div>
+                </div>
+            </div>
+
+            <!-- Preview & Output Panel -->
+            <div class="panel">
+                <h2>Preview & Output</h2>
+                
+                <div class="preview-image" id="preview-image">
+                    📽️ Sample Frame Preview<br>
+                    <small style="opacity: 0.7;">Upload a video or image frame to see preview</small>
+                </div>
+
+                <div class="preview-comparison" id="preview-comparison">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+                        <div>
+                            <h4 style="text-align: center; margin-bottom: 12px; color: rgba(255, 255, 255, 0.9); font-weight: 600; font-size: 0.95rem;">Original</h4>
+                            <canvas id="original-canvas" style="width: 100%; border-radius: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.1);"></canvas>
+                        </div>
+                        <div>
+                            <h4 style="text-align: center; margin-bottom: 12px; color: rgba(255, 255, 255, 0.9); font-weight: 600; font-size: 0.95rem;">Estimated Quality</h4>
+                            <canvas id="processed-canvas" style="width: 100%; border-radius: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.1);"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="quality-indicator">
+                    <div class="quality-metric">
+                        <div class="label">Quality Level</div>
+                        <div class="value" id="quality-level">High</div>
+                    </div>
+                    <div class="quality-metric">
+                        <div class="label">Est. File Size</div>
+                        <div class="value" id="file-size">~850 MB</div>
+                    </div>
+                    <div class="quality-metric">
+                        <div class="label">Encoding Speed</div>
+                        <div class="value" id="encoding-speed">Medium</div>
+                    </div>
+                </div>
+
+                <div class="parameter-group">
+                    <div class="parameter-label">
+                        <span>Video Duration (for size estimation)</span>
+                        <span class="parameter-value" id="duration-value">60 min</span>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="duration-slider" min="1" max="180" value="60" step="1">
+                    </div>
+                    <div class="parameter-description">Estimated video duration in minutes for file size calculation</div>
+                </div>
+
+                <div class="parameter-group">
+                    <div class="parameter-label">
+                        <span>Input File</span>
+                    </div>
+                    <input type="file" class="file-input" id="video-input" accept="video/*,image/*">
+                    <div class="parameter-description">Select a video file or image frame to see quality preview</div>
+                </div>
+
+                <h3 style="margin: 24px 0 12px 0; color: rgba(255, 255, 255, 0.95); font-weight: 600; font-size: 1.1rem; letter-spacing: -0.025em;">Generated FFmpeg Command:</h3>
+                <div class="command-output" id="ffmpeg-command">
+                    ffmpeg -i input.mp4 -vf "scale=1920:1080" -c:v libx264 -crf 23 -preset medium -pix_fmt yuv420p -aq-mode 1 -aq-strength 1.0 -tune film output.mp4
+                </div>
+                <button class="copy-button" onclick="copyCommand()">📋 Copy Command</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Parameter values
+        let parameters = {
+            resolution: '1920:1080',
+            crf: 23,
+            preset: 'medium',
+            pixfmt: 'yuv420p',
+            aqMode: 1,
+            aqStrength: 1.0,
+            tune: 'film',
+            duration: 60
+        };
+
+        // Global variables for image processing
+        let originalImage = null;
+        let originalCanvas = null;
+        let processedCanvas = null;
+
+        // Quality presets for different CRF values
+        const qualityLevels = {
+            'Lossless': { crf: [0, 15], size: 'Very Large', speed: 'Very Slow' },
+            'Visually Lossless': { crf: [16, 20], size: 'Large', speed: 'Slow' },
+            'High': { crf: [21, 25], size: 'Medium', speed: 'Medium' },
+            'Good': { crf: [26, 30], size: 'Small', speed: 'Fast' },
+            'Fair': { crf: [31, 40], size: 'Very Small', speed: 'Very Fast' },
+            'Poor': { crf: [41, 51], size: 'Tiny', speed: 'Ultra Fast' }
+        };
+
+        // Speed ratings for presets
+        const presetSpeeds = {
+            'placebo': 'Extremely Slow',
+            'veryslow': 'Very Slow',
+            'slower': 'Slow',
+            'slow': 'Moderately Slow',
+            'medium': 'Medium',
+            'fast': 'Fast',
+            'faster': 'Faster',
+            'veryfast': 'Very Fast',
+            'superfast': 'Super Fast',
+            'ultrafast': 'Ultra Fast'
+        };
+
+        // Initialize event listeners
+        function initializeEventListeners() {
+            // Resolution
+            document.getElementById('resolution-select').addEventListener('change', function() {
+                parameters.resolution = this.value;
+                updateResolutionDisplay();
+                updateCommand();
+                updateQualityMetrics();
+                updateProcessedPreview();
+            });
+
+            // CRF
+            document.getElementById('crf-slider').addEventListener('input', function() {
+                parameters.crf = parseInt(this.value);
+                updateCrfDisplay();
+                updateCommand();
+                updateQualityMetrics();
+                updateProcessedPreview();
+            });
+
+            // Preset
+            document.getElementById('preset-select').addEventListener('change', function() {
+                parameters.preset = this.value;
+                updatePresetDisplay();
+                updateCommand();
+                updateQualityMetrics();
+                updateProcessedPreview();
+            });
+
+            // Pixel Format
+            document.getElementById('pixfmt-select').addEventListener('change', function() {
+                parameters.pixfmt = this.value;
+                updatePixfmtDisplay();
+                updateCommand();
+                updateQualityMetrics();
+                updateProcessedPreview();
+            });
+
+            // AQ Mode
+            document.getElementById('aq-mode-slider').addEventListener('input', function() {
+                parameters.aqMode = parseInt(this.value);
+                updateAqModeDisplay();
+                updateCommand();
+                updateProcessedPreview();
+            });
+
+            // AQ Strength
+            document.getElementById('aq-strength-slider').addEventListener('input', function() {
+                parameters.aqStrength = parseFloat(this.value);
+                updateAqStrengthDisplay();
+                updateCommand();
+                updateProcessedPreview();
+            });
+
+            // Tune
+            document.getElementById('tune-select').addEventListener('change', function() {
+                parameters.tune = this.value;
+                updateTuneDisplay();
+                updateCommand();
+                updateProcessedPreview();
+            });
+
+            // Duration
+            document.getElementById('duration-slider').addEventListener('input', function() {
+                parameters.duration = parseInt(this.value);
+                updateDurationDisplay();
+                updateQualityMetrics();
+            });
+
+            // Video input
+            document.getElementById('video-input').addEventListener('change', handleFileUpload);
+        }
+
+        // Update display functions
+        function updateResolutionDisplay() {
+            const resolution = parameters.resolution.replace(':', '×');
+            document.getElementById('resolution-value').textContent = resolution;
+        }
+
+        function updateCrfDisplay() {
+            document.getElementById('crf-value').textContent = parameters.crf;
+        }
+
+        function updatePresetDisplay() {
+            document.getElementById('preset-value').textContent = parameters.preset;
+        }
+
+        function updatePixfmtDisplay() {
+            document.getElementById('pixfmt-value').textContent = parameters.pixfmt;
+        }
+
+        function updateAqModeDisplay() {
+            document.getElementById('aq-mode-value').textContent = parameters.aqMode;
+        }
+
+        function updateAqStrengthDisplay() {
+            document.getElementById('aq-strength-value').textContent = parameters.aqStrength.toFixed(1);
+        }
+
+        function updateTuneDisplay() {
+            document.getElementById('tune-value').textContent = parameters.tune || 'none';
+        }
+
+        function updateDurationDisplay() {
+            document.getElementById('duration-value').textContent = parameters.duration + ' min';
+        }
+
+        // Calculate estimated file size in MB
+        function calculateFileSize() {
+            // Base bitrate estimates for different CRF values (kbps)
+            const crfBitrates = {
+                15: 8000, 16: 7000, 17: 6000, 18: 5500, 19: 5000, 20: 4500, 
+                21: 4000, 22: 3500, 23: 3000, 24: 2700, 25: 2400, 26: 2100, 
+                27: 1800, 28: 1600, 29: 1400, 30: 1200, 31: 1000, 32: 900, 
+                33: 800, 34: 700, 35: 600, 36: 500, 37: 450, 38: 400, 
+                39: 350, 40: 300, 41: 250, 42: 200, 43: 170, 44: 140, 
+                45: 120, 46: 100, 47: 80, 48: 60, 49: 50, 50: 40, 51: 30
+            };
+
+            let baseBitrate = crfBitrates[parameters.crf] || 3000;
+
+            // Resolution multipliers
+            const resolutionMultipliers = {
+                '3840:2160': 4.0,   // 4K
+                '2560:1440': 2.25,  // 1440p
+                '1920:1080': 1.0,   // 1080p (baseline)
+                '1280:720': 0.44,   // 720p
+                '854:480': 0.25     // 480p
+            };
+
+            // Pixel format multipliers
+            const pixfmtMultipliers = {
+                'yuv420p': 1.0,
+                'yuv422p': 1.33,
+                'yuv444p': 2.0,
+                'yuv420p10le': 1.25,
+                'yuv422p10le': 1.67
+            };
+
+            // Preset efficiency (slower presets compress better)
+            const presetEfficiency = {
+                'placebo': 0.7,
+                'veryslow': 0.75,
+                'slower': 0.8,
+                'slow': 0.85,
+                'medium': 1.0,
+                'fast': 1.1,
+                'faster': 1.15,
+                'veryfast': 1.2,
+                'superfast': 1.3,
+                'ultrafast': 1.5
+            };
+
+            const resMultiplier = resolutionMultipliers[parameters.resolution] || 1.0;
+            const pixMultiplier = pixfmtMultipliers[parameters.pixfmt] || 1.0;
+            const presetMultiplier = presetEfficiency[parameters.preset] || 1.0;
+
+            // Calculate final bitrate
+            const finalBitrate = baseBitrate * resMultiplier * pixMultiplier * presetMultiplier;
+
+            // Convert to file size: bitrate (kbps) * duration (minutes) * 60 seconds / 8 bits per byte / 1024 KB per MB
+            const fileSizeMB = (finalBitrate * parameters.duration * 60) / (8 * 1024);
+
+            return Math.round(fileSizeMB);
+        }
+
+        // Update quality metrics
+        function updateQualityMetrics() {
+            // Determine quality level based on CRF
+            let qualityLevel = 'Unknown';
+            
+            for (const [level, data] of Object.entries(qualityLevels)) {
+                if (parameters.crf >= data.crf[0] && parameters.crf <= data.crf[1]) {
+                    qualityLevel = level;
+                    break;
+                }
+            }
+
+            // Calculate file size
+            const fileSizeMB = calculateFileSize();
+            let fileSizeText = '';
+            
+            if (fileSizeMB < 1024) {
+                fileSizeText = `~${fileSizeMB} MB`;
+            } else {
+                const fileSizeGB = (fileSizeMB / 1024).toFixed(1);
+                fileSizeText = `~${fileSizeGB} GB`;
+            }
+
+            document.getElementById('quality-level').textContent = qualityLevel;
+            document.getElementById('file-size').textContent = fileSizeText;
+            document.getElementById('encoding-speed').textContent = presetSpeeds[parameters.preset] || 'Medium';
+        }
+
+        // Update FFmpeg command
+        function updateCommand() {
+            let command = 'ffmpeg -i input.mp4';
+            
+            // Video filter for scaling
+            command += ` -vf "scale=${parameters.resolution}"`;
+            
+            // Video codec
+            command += ' -c:v libx264';
+            
+            // CRF
+            command += ` -crf ${parameters.crf}`;
+            
+            // Preset
+            command += ` -preset ${parameters.preset}`;
+            
+            // Pixel format
+            command += ` -pix_fmt ${parameters.pixfmt}`;
+            
+            // Adaptive quantization
+            if (parameters.aqMode > 0) {
+                command += ` -aq-mode ${parameters.aqMode}`;
+                command += ` -aq-strength ${parameters.aqStrength}`;
+            }
+            
+            // Tune
+            if (parameters.tune) {
+                command += ` -tune ${parameters.tune}`;
+            }
+            
+            // Output
+            command += ' output.mp4';
+            
+            document.getElementById('ffmpeg-command').textContent = command;
+        }
+
+        // Handle file upload (video or image)
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (file.type.startsWith('video/')) {
+                handleVideoUpload(file);
+            } else if (file.type.startsWith('image/')) {
+                handleImageUpload(file);
+            }
+        }
+
+        // Handle video upload and frame extraction
+        function handleVideoUpload(file) {
+            const video = document.createElement('video');
+            video.src = URL.createObjectURL(file);
+            video.addEventListener('loadeddata', function() {
+                // Update duration slider with actual video duration
+                const videoDurationMinutes = Math.round(video.duration / 60);
+                parameters.duration = videoDurationMinutes;
+                document.getElementById('duration-slider').value = videoDurationMinutes;
+                updateDurationDisplay();
+                updateQualityMetrics();
+
+                // Create canvas to extract frame
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Set canvas size to match video
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                
+                // Seek to 10% of video duration for preview
+                video.currentTime = video.duration * 0.1;
+                
+                video.addEventListener('seeked', function() {
+                    // Draw frame to canvas
+                    ctx.drawImage(video, 0, 0);
+                    
+                    // Convert to image data
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    processFrameForPreview(imageData, canvas.width, canvas.height);
+                    
+                    // Cleanup
+                    URL.revokeObjectURL(video.src);
+                });
+            });
+        }
+
+        // Handle direct image upload
+        function handleImageUpload(file) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                processFrameForPreview(imageData, canvas.width, canvas.height);
+                
+                URL.revokeObjectURL(img.src);
+            };
+            img.src = URL.createObjectURL(file);
+        }
+
+        // Process frame and show quality comparison
+        function processFrameForPreview(imageData, width, height) {
+            // Hide initial preview and show comparison
+            document.getElementById('preview-image').style.display = 'none';
+            document.getElementById('preview-comparison').style.display = 'block';
+
+            // Setup canvases
+            originalCanvas = document.getElementById('original-canvas');
+            processedCanvas = document.getElementById('processed-canvas');
+            
+            originalCanvas.width = width;
+            originalCanvas.height = height;
+            processedCanvas.width = width;
+            processedCanvas.height = height;
+
+            // Display original
+            const originalCtx = originalCanvas.getContext('2d');
+            originalCtx.putImageData(imageData, 0, 0);
+
+            // Store original image data
+            originalImage = imageData;
+
+            // Process and display estimated quality
+            updateProcessedPreview();
+        }
+
+        // Update processed preview based on current parameters
+        function updateProcessedPreview() {
+            if (!originalImage || !processedCanvas) return;
+
+            const processedCtx = processedCanvas.getContext('2d');
+            const processedImageData = processedCtx.createImageData(originalImage.width, originalImage.height);
+
+            // Copy original data
+            for (let i = 0; i < originalImage.data.length; i++) {
+                processedImageData.data[i] = originalImage.data[i];
+            }
+
+            // Apply quality simulation based on CRF
+            simulateCompressionArtifacts(processedImageData);
+
+            // Apply pixel format simulation
+            simulatePixelFormat(processedImageData);
+
+            // Display processed image
+            processedCtx.putImageData(processedImageData, 0, 0);
+        }
+
+        // Simulate compression artifacts based on CRF
+        function simulateCompressionArtifacts(imageData) {
+            // More aggressive quality degradation for better visual feedback
+            const qualityFactor = Math.max(0.3, Math.min(1, (45 - parameters.crf) / 45));
+            
+            // Dynamic block size based on CRF - more aggressive scaling
+            let blockSize = 1;
+            if (parameters.crf > 20) blockSize = 2;
+            if (parameters.crf > 25) blockSize = 3;
+            if (parameters.crf > 30) blockSize = 4;
+            if (parameters.crf > 35) blockSize = 6;
+            if (parameters.crf > 40) blockSize = 8;
+
+            // Color quantization (reduces color depth)
+            const quantLevels = Math.max(8, Math.floor(256 - (parameters.crf - 15) * 4));
+            for (let i = 0; i < imageData.data.length; i += 4) {
+                imageData.data[i] = Math.round(imageData.data[i] / quantLevels) * quantLevels;
+                imageData.data[i + 1] = Math.round(imageData.data[i + 1] / quantLevels) * quantLevels;
+                imageData.data[i + 2] = Math.round(imageData.data[i + 2] / quantLevels) * quantLevels;
+            }
+
+            // Block-based quantization for higher CRF values
+            if (parameters.crf > 18) {
+                for (let y = 0; y < imageData.height; y += blockSize) {
+                    for (let x = 0; x < imageData.width; x += blockSize) {
+                        let r = 0, g = 0, b = 0, count = 0;
+
+                        // Calculate average color in block
+                        for (let by = 0; by < blockSize && y + by < imageData.height; by++) {
+                            for (let bx = 0; bx < blockSize && x + bx < imageData.width; bx++) {
+                                const idx = ((y + by) * imageData.width + (x + bx)) * 4;
+                                r += imageData.data[idx];
+                                g += imageData.data[idx + 1];
+                                b += imageData.data[idx + 2];
+                                count++;
+                            }
+                        }
+
+                        if (count > 0) {
+                            r = Math.round(r / count);
+                            g = Math.round(g / count);
+                            b = Math.round(b / count);
+
+                            // Blend factor increases with higher CRF
+                            const blendFactor = Math.min(0.8, (parameters.crf - 18) / 30);
+
+                            // Apply averaged color to block with blending
+                            for (let by = 0; by < blockSize && y + by < imageData.height; by++) {
+                                for (let bx = 0; bx < blockSize && x + bx < imageData.width; bx++) {
+                                    const idx = ((y + by) * imageData.width + (x + bx)) * 4;
+                                    imageData.data[idx] = Math.round(imageData.data[idx] * (1 - blendFactor) + r * blendFactor);
+                                    imageData.data[idx + 1] = Math.round(imageData.data[idx + 1] * (1 - blendFactor) + g * blendFactor);
+                                    imageData.data[idx + 2] = Math.round(imageData.data[idx + 2] * (1 - blendFactor) + b * blendFactor);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Add noise for high CRF values
+            if (parameters.crf > 28) {
+                const noiseLevel = (parameters.crf - 28) * 1.5;
+                for (let i = 0; i < imageData.data.length; i += 4) {
+                    const noise = (Math.random() - 0.5) * noiseLevel;
+                    imageData.data[i] = Math.max(0, Math.min(255, imageData.data[i] + noise));
+                    imageData.data[i + 1] = Math.max(0, Math.min(255, imageData.data[i + 1] + noise));
+                    imageData.data[i + 2] = Math.max(0, Math.min(255, imageData.data[i + 2] + noise));
+                }
+            }
+
+            // Blur effect for very high CRF values
+            if (parameters.crf > 35) {
+                applyGaussianBlur(imageData, 1);
+            }
+        }
+
+        // Simple Gaussian blur implementation
+        function applyGaussianBlur(imageData, radius) {
+            const width = imageData.width;
+            const height = imageData.height;
+            const data = new Uint8ClampedArray(imageData.data);
+
+            for (let y = radius; y < height - radius; y++) {
+                for (let x = radius; x < width - radius; x++) {
+                    let r = 0, g = 0, b = 0, count = 0;
+
+                    for (let dy = -radius; dy <= radius; dy++) {
+                        for (let dx = -radius; dx <= radius; dx++) {
+                            const idx = ((y + dy) * width + (x + dx)) * 4;
+                            r += data[idx];
+                            g += data[idx + 1];
+                            b += data[idx + 2];
+                            count++;
+                        }
+                    }
+
+                    const idx = (y * width + x) * 4;
+                    imageData.data[idx] = r / count;
+                    imageData.data[idx + 1] = g / count;
+                    imageData.data[idx + 2] = b / count;
+                }
+            }
+        }
+
+        // Simulate pixel format effects
+        function simulatePixelFormat(imageData) {
+            if (parameters.pixfmt === 'yuv420p' || parameters.pixfmt === 'yuv420p10le') {
+                // Simulate chroma subsampling (4:2:0)
+                for (let y = 0; y < imageData.height; y += 2) {
+                    for (let x = 0; x < imageData.width; x += 2) {
+                        // Sample chroma from 2x2 block
+                        let totalU = 0, totalV = 0, count = 0;
+                        
+                        for (let dy = 0; dy < 2 && y + dy < imageData.height; dy++) {
+                            for (let dx = 0; dx < 2 && x + dx < imageData.width; dx++) {
+                                const idx = ((y + dy) * imageData.width + (x + dx)) * 4;
+                                const r = imageData.data[idx];
+                                const g = imageData.data[idx + 1];
+                                const b = imageData.data[idx + 2];
+                                
+                                // Convert to YUV
+                                const u = -0.169 * r - 0.331 * g + 0.5 * b;
+                                const v = 0.5 * r - 0.419 * g - 0.081 * b;
+                                
+                                totalU += u;
+                                totalV += v;
+                                count++;
+                            }
+                        }
+                        
+                        const avgU = totalU / count;
+                        const avgV = totalV / count;
+                        
+                        // Apply averaged chroma back to 2x2 block
+                        for (let dy = 0; dy < 2 && y + dy < imageData.height; dy++) {
+                            for (let dx = 0; dx < 2 && x + dx < imageData.width; dx++) {
+                                const idx = ((y + dy) * imageData.width + (x + dx)) * 4;
+                                const r = imageData.data[idx];
+                                const g = imageData.data[idx + 1];
+                                const b = imageData.data[idx + 2];
+                                
+                                // Convert to YUV, replace UV, convert back
+                                const y_val = 0.299 * r + 0.587 * g + 0.114 * b;
+                                
+                                const newR = y_val + 1.402 * avgV;
+                                const newG = y_val - 0.344 * avgU - 0.714 * avgV;
+                                const newB = y_val + 1.772 * avgU;
+                                
+                                imageData.data[idx] = Math.max(0, Math.min(255, Math.round(newR)));
+                                imageData.data[idx + 1] = Math.max(0, Math.min(255, Math.round(newG)));
+                                imageData.data[idx + 2] = Math.max(0, Math.min(255, Math.round(newB)));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Copy command to clipboard
+        function copyCommand() {
+            const command = document.getElementById('ffmpeg-command').textContent;
+            navigator.clipboard.writeText(command).then(() => {
+                const button = document.querySelector('.copy-button');
+                const originalText = button.textContent;
+                button.textContent = '✅ Copied!';
+                button.style.background = '#48bb78';
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = 'linear-gradient(135deg, #48bb78, #38a169)';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy command. Please select and copy manually.');
+            });
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+            updateCommand();
+            updateQualityMetrics();
+            updateResolutionDisplay();
+            updateCrfDisplay();
+            updatePresetDisplay();
+            updatePixfmtDisplay();
+            updateAqModeDisplay();
+            updateAqStrengthDisplay();
+            updateTuneDisplay();
+            updateDurationDisplay();
+        });
+    </script>
+</body>
+</html>
