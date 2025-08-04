@@ -425,7 +425,20 @@
                 <div class="preview-container">
                     <div class="preview-image" id="preview-image">
                         📽️ Sample Frame Preview<br>
-                        <small style="opacity: 0.7;">Upload a video to see preview</small>
+                        <small style="opacity: 0.7;">Upload a video or image frame to see preview</small>
+                    </div>
+                </div>
+
+                <div class="preview-comparison" id="preview-comparison" style="display: none;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+                        <div>
+                            <h4 style="text-align: center; margin-bottom: 10px; color: #4a5568;">Original</h4>
+                            <canvas id="original-canvas" style="width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"></canvas>
+                        </div>
+                        <div>
+                            <h4 style="text-align: center; margin-bottom: 10px; color: #4a5568;">Estimated Quality</h4>
+                            <canvas id="processed-canvas" style="width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"></canvas>
+                        </div>
                     </div>
                 </div>
 
@@ -435,8 +448,8 @@
                         <div class="value" id="quality-level">High</div>
                     </div>
                     <div class="quality-metric">
-                        <div class="label">File Size</div>
-                        <div class="value" id="file-size">Medium</div>
+                        <div class="label">Est. File Size</div>
+                        <div class="value" id="file-size">~850 MB</div>
                     </div>
                     <div class="quality-metric">
                         <div class="label">Encoding Speed</div>
@@ -446,10 +459,21 @@
 
                 <div class="parameter-group">
                     <div class="parameter-label">
+                        <span>Video Duration (for size estimation)</span>
+                        <span class="parameter-value" id="duration-value">60 min</span>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="duration-slider" min="1" max="180" value="60" step="1">
+                    </div>
+                    <div class="parameter-description">Estimated video duration in minutes for file size calculation</div>
+                </div>
+
+                <div class="parameter-group">
+                    <div class="parameter-label">
                         <span>Input File</span>
                     </div>
-                    <input type="file" id="video-input" accept="video/*" style="margin-bottom: 10px; width: 100%; padding: 8px; border: 2px solid #e2e8f0; border-radius: 6px;">
-                    <div class="parameter-description">Select a video file to generate preview frames</div>
+                    <input type="file" id="video-input" accept="video/*,image/*" style="margin-bottom: 10px; width: 100%; padding: 8px; border: 2px solid #e2e8f0; border-radius: 6px;">
+                    <div class="parameter-description">Select a video file or image frame to see quality preview</div>
                 </div>
 
                 <h3 style="margin: 20px 0 10px 0; color: #4a5568;">Generated FFmpeg Command:</h3>
@@ -470,8 +494,14 @@
             pixfmt: 'yuv420p',
             aqMode: 1,
             aqStrength: 1.0,
-            tune: 'film'
+            tune: 'film',
+            duration: 60
         };
+
+        // Global variables for image processing
+        let originalImage = null;
+        let originalCanvas = null;
+        let processedCanvas = null;
 
         // Quality presets for different CRF values
         const qualityLevels = {
@@ -552,8 +582,15 @@
                 updateCommand();
             });
 
+            // Duration
+            document.getElementById('duration-slider').addEventListener('input', function() {
+                parameters.duration = parseInt(this.value);
+                updateDurationDisplay();
+                updateQualityMetrics();
+            });
+
             // Video input
-            document.getElementById('video-input').addEventListener('change', handleVideoUpload);
+            document.getElementById('video-input').addEventListener('change', handleFileUpload);
         }
 
         // Update display functions
@@ -605,35 +642,94 @@
             document.getElementById('tune-value').textContent = parameters.tune || 'none';
         }
 
+        function updateDurationDisplay() {
+            document.getElementById('duration-value').textContent = parameters.duration + ' min';
+        }
+
+        // Calculate estimated file size in MB
+        function calculateFileSize() {
+            // Base bitrate estimates for different CRF values (kbps)
+            const crfBitrates = {
+                15: 8000, 16: 7000, 17: 6000, 18: 5500, 19: 5000, 20: 4500, 
+                21: 4000, 22: 3500, 23: 3000, 24: 2700, 25: 2400, 26: 2100, 
+                27: 1800, 28: 1600, 29: 1400, 30: 1200, 31: 1000, 32: 900, 
+                33: 800, 34: 700, 35: 600, 36: 500, 37: 450, 38: 400, 
+                39: 350, 40: 300, 41: 250, 42: 200, 43: 170, 44: 140, 
+                45: 120, 46: 100, 47: 80, 48: 60, 49: 50, 50: 40, 51: 30
+            };
+
+            let baseBitrate = crfBitrates[parameters.crf] || 3000;
+
+            // Resolution multipliers
+            const resolutionMultipliers = {
+                '3840:2160': 4.0,   // 4K
+                '2560:1440': 2.25,  // 1440p
+                '1920:1080': 1.0,   // 1080p (baseline)
+                '1280:720': 0.44,   // 720p
+                '854:480': 0.25     // 480p
+            };
+
+            // Pixel format multipliers
+            const pixfmtMultipliers = {
+                'yuv420p': 1.0,
+                'yuv422p': 1.33,
+                'yuv444p': 2.0,
+                'yuv420p10le': 1.25,
+                'yuv422p10le': 1.67
+            };
+
+            // Preset efficiency (slower presets compress better)
+            const presetEfficiency = {
+                'placebo': 0.7,
+                'veryslow': 0.75,
+                'slower': 0.8,
+                'slow': 0.85,
+                'medium': 1.0,
+                'fast': 1.1,
+                'faster': 1.15,
+                'veryfast': 1.2,
+                'superfast': 1.3,
+                'ultrafast': 1.5
+            };
+
+            const resMultiplier = resolutionMultipliers[parameters.resolution] || 1.0;
+            const pixMultiplier = pixfmtMultipliers[parameters.pixfmt] || 1.0;
+            const presetMultiplier = presetEfficiency[parameters.preset] || 1.0;
+
+            // Calculate final bitrate
+            const finalBitrate = baseBitrate * resMultiplier * pixMultiplier * presetMultiplier;
+
+            // Convert to file size: bitrate (kbps) * duration (minutes) * 60 seconds / 8 bits per byte / 1024 KB per MB
+            const fileSizeMB = (finalBitrate * parameters.duration * 60) / (8 * 1024);
+
+            return Math.round(fileSizeMB);
+        }
+
         // Update quality metrics
         function updateQualityMetrics() {
             // Determine quality level based on CRF
             let qualityLevel = 'Unknown';
-            let fileSize = 'Unknown';
             
             for (const [level, data] of Object.entries(qualityLevels)) {
                 if (parameters.crf >= data.crf[0] && parameters.crf <= data.crf[1]) {
                     qualityLevel = level;
-                    fileSize = data.size;
                     break;
                 }
             }
 
-            // Adjust for resolution
-            if (parameters.resolution === '3840:2160') {
-                fileSize = fileSize === 'Very Small' ? 'Small' : 
-                          fileSize === 'Small' ? 'Medium' : 
-                          fileSize === 'Medium' ? 'Large' : 
-                          fileSize === 'Large' ? 'Very Large' : 'Extremely Large';
-            } else if (parameters.resolution === '854:480') {
-                fileSize = fileSize === 'Very Large' ? 'Large' : 
-                          fileSize === 'Large' ? 'Medium' : 
-                          fileSize === 'Medium' ? 'Small' : 
-                          fileSize === 'Small' ? 'Very Small' : 'Tiny';
+            // Calculate file size
+            const fileSizeMB = calculateFileSize();
+            let fileSizeText = '';
+            
+            if (fileSizeMB < 1024) {
+                fileSizeText = `~${fileSizeMB} MB`;
+            } else {
+                const fileSizeGB = (fileSizeMB / 1024).toFixed(1);
+                fileSizeText = `~${fileSizeGB} GB`;
             }
 
             document.getElementById('quality-level').textContent = qualityLevel;
-            document.getElementById('file-size').textContent = fileSize;
+            document.getElementById('file-size').textContent = fileSizeText;
             document.getElementById('encoding-speed').textContent = presetSpeeds[parameters.preset] || 'Medium';
         }
 
@@ -673,44 +769,226 @@
             document.getElementById('ffmpeg-command').textContent = command;
         }
 
-        // Handle video upload and preview
-        function handleVideoUpload(event) {
+        // Handle file upload (video or image)
+        function handleFileUpload(event) {
             const file = event.target.files[0];
-            if (file) {
-                const video = document.createElement('video');
-                video.src = URL.createObjectURL(file);
-                video.addEventListener('loadeddata', function() {
-                    // Create canvas to extract frame
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
+            if (!file) return;
+
+            if (file.type.startsWith('video/')) {
+                handleVideoUpload(file);
+            } else if (file.type.startsWith('image/')) {
+                handleImageUpload(file);
+            }
+        }
+
+        // Handle video upload and frame extraction
+        function handleVideoUpload(file) {
+            const video = document.createElement('video');
+            video.src = URL.createObjectURL(file);
+            video.addEventListener('loadeddata', function() {
+                // Update duration slider with actual video duration
+                const videoDurationMinutes = Math.round(video.duration / 60);
+                parameters.duration = videoDurationMinutes;
+                document.getElementById('duration-slider').value = videoDurationMinutes;
+                updateDurationDisplay();
+                updateQualityMetrics();
+
+                // Create canvas to extract frame
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Set canvas size to match video
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                
+                // Seek to 10% of video duration for preview
+                video.currentTime = video.duration * 0.1;
+                
+                video.addEventListener('seeked', function() {
+                    // Draw frame to canvas
+                    ctx.drawImage(video, 0, 0);
                     
-                    // Set canvas size to match video
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
+                    // Convert to image data
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    processFrameForPreview(imageData, canvas.width, canvas.height);
                     
-                    // Seek to 10% of video duration for preview
-                    video.currentTime = video.duration * 0.1;
-                    
-                    video.addEventListener('seeked', function() {
-                        // Draw frame to canvas
-                        ctx.drawImage(video, 0, 0);
-                        
-                        // Convert to image and display
-                        const previewImg = document.createElement('img');
-                        previewImg.src = canvas.toDataURL();
-                        previewImg.style.width = '100%';
-                        previewImg.style.height = '300px';
-                        previewImg.style.objectFit = 'cover';
-                        previewImg.style.borderRadius = '10px';
-                        
-                        const previewContainer = document.getElementById('preview-image');
-                        previewContainer.innerHTML = '';
-                        previewContainer.appendChild(previewImg);
-                        
-                        // Cleanup
-                        URL.revokeObjectURL(video.src);
-                    });
+                    // Cleanup
+                    URL.revokeObjectURL(video.src);
                 });
+            });
+        }
+
+        // Handle direct image upload
+        function handleImageUpload(file) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                processFrameForPreview(imageData, canvas.width, canvas.height);
+                
+                URL.revokeObjectURL(img.src);
+            };
+            img.src = URL.createObjectURL(file);
+        }
+
+        // Process frame and show quality comparison
+        function processFrameForPreview(imageData, width, height) {
+            // Hide initial preview and show comparison
+            document.getElementById('preview-image').style.display = 'none';
+            document.getElementById('preview-comparison').style.display = 'block';
+
+            // Setup canvases
+            originalCanvas = document.getElementById('original-canvas');
+            processedCanvas = document.getElementById('processed-canvas');
+            
+            originalCanvas.width = width;
+            originalCanvas.height = height;
+            processedCanvas.width = width;
+            processedCanvas.height = height;
+
+            // Display original
+            const originalCtx = originalCanvas.getContext('2d');
+            originalCtx.putImageData(imageData, 0, 0);
+
+            // Store original image data
+            originalImage = imageData;
+
+            // Process and display estimated quality
+            updateProcessedPreview();
+        }
+
+        // Update processed preview based on current parameters
+        function updateProcessedPreview() {
+            if (!originalImage || !processedCanvas) return;
+
+            const processedCtx = processedCanvas.getContext('2d');
+            const processedImageData = processedCtx.createImageData(originalImage.width, originalImage.height);
+
+            // Copy original data
+            for (let i = 0; i < originalImage.data.length; i++) {
+                processedImageData.data[i] = originalImage.data[i];
+            }
+
+            // Apply quality simulation based on CRF
+            simulateCompressionArtifacts(processedImageData);
+
+            // Apply pixel format simulation
+            simulatePixelFormat(processedImageData);
+
+            // Display processed image
+            processedCtx.putImageData(processedImageData, 0, 0);
+        }
+
+        // Simulate compression artifacts based on CRF
+        function simulateCompressionArtifacts(imageData) {
+            const compressionFactor = Math.max(0.1, Math.min(1, (51 - parameters.crf) / 51));
+            const blockSize = Math.max(1, Math.floor((parameters.crf - 15) / 4));
+
+            if (parameters.crf > 25) {
+                // Apply block-based quantization simulation for higher CRF values
+                for (let y = 0; y < imageData.height; y += blockSize) {
+                    for (let x = 0; x < imageData.width; x += blockSize) {
+                        let r = 0, g = 0, b = 0, count = 0;
+
+                        // Calculate average color in block
+                        for (let by = 0; by < blockSize && y + by < imageData.height; by++) {
+                            for (let bx = 0; bx < blockSize && x + bx < imageData.width; bx++) {
+                                const idx = ((y + by) * imageData.width + (x + bx)) * 4;
+                                r += imageData.data[idx];
+                                g += imageData.data[idx + 1];
+                                b += imageData.data[idx + 2];
+                                count++;
+                            }
+                        }
+
+                        if (count > 0) {
+                            r = Math.round(r / count);
+                            g = Math.round(g / count);
+                            b = Math.round(b / count);
+
+                            // Apply averaged color to block
+                            for (let by = 0; by < blockSize && y + by < imageData.height; by++) {
+                                for (let bx = 0; bx < blockSize && x + bx < imageData.width; bx++) {
+                                    const idx = ((y + by) * imageData.width + (x + bx)) * 4;
+                                    imageData.data[idx] = Math.round(imageData.data[idx] * compressionFactor + r * (1 - compressionFactor));
+                                    imageData.data[idx + 1] = Math.round(imageData.data[idx + 1] * compressionFactor + g * (1 - compressionFactor));
+                                    imageData.data[idx + 2] = Math.round(imageData.data[idx + 2] * compressionFactor + b * (1 - compressionFactor));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Add noise for very high CRF values
+            if (parameters.crf > 35) {
+                const noiseLevel = (parameters.crf - 35) * 2;
+                for (let i = 0; i < imageData.data.length; i += 4) {
+                    const noise = (Math.random() - 0.5) * noiseLevel;
+                    imageData.data[i] = Math.max(0, Math.min(255, imageData.data[i] + noise));
+                    imageData.data[i + 1] = Math.max(0, Math.min(255, imageData.data[i + 1] + noise));
+                    imageData.data[i + 2] = Math.max(0, Math.min(255, imageData.data[i + 2] + noise));
+                }
+            }
+        }
+
+        // Simulate pixel format effects
+        function simulatePixelFormat(imageData) {
+            if (parameters.pixfmt === 'yuv420p' || parameters.pixfmt === 'yuv420p10le') {
+                // Simulate chroma subsampling (4:2:0)
+                for (let y = 0; y < imageData.height; y += 2) {
+                    for (let x = 0; x < imageData.width; x += 2) {
+                        // Sample chroma from 2x2 block
+                        let totalU = 0, totalV = 0, count = 0;
+                        
+                        for (let dy = 0; dy < 2 && y + dy < imageData.height; dy++) {
+                            for (let dx = 0; dx < 2 && x + dx < imageData.width; dx++) {
+                                const idx = ((y + dy) * imageData.width + (x + dx)) * 4;
+                                const r = imageData.data[idx];
+                                const g = imageData.data[idx + 1];
+                                const b = imageData.data[idx + 2];
+                                
+                                // Convert to YUV
+                                const u = -0.169 * r - 0.331 * g + 0.5 * b;
+                                const v = 0.5 * r - 0.419 * g - 0.081 * b;
+                                
+                                totalU += u;
+                                totalV += v;
+                                count++;
+                            }
+                        }
+                        
+                        const avgU = totalU / count;
+                        const avgV = totalV / count;
+                        
+                        // Apply averaged chroma back to 2x2 block
+                        for (let dy = 0; dy < 2 && y + dy < imageData.height; dy++) {
+                            for (let dx = 0; dx < 2 && x + dx < imageData.width; dx++) {
+                                const idx = ((y + dy) * imageData.width + (x + dx)) * 4;
+                                const r = imageData.data[idx];
+                                const g = imageData.data[idx + 1];
+                                const b = imageData.data[idx + 2];
+                                
+                                // Convert to YUV, replace UV, convert back
+                                const y_val = 0.299 * r + 0.587 * g + 0.114 * b;
+                                
+                                const newR = y_val + 1.402 * avgV;
+                                const newG = y_val - 0.344 * avgU - 0.714 * avgV;
+                                const newB = y_val + 1.772 * avgU;
+                                
+                                imageData.data[idx] = Math.max(0, Math.min(255, Math.round(newR)));
+                                imageData.data[idx + 1] = Math.max(0, Math.min(255, Math.round(newG)));
+                                imageData.data[idx + 2] = Math.max(0, Math.min(255, Math.round(newB)));
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -745,6 +1023,16 @@
             updateAqModeDisplay();
             updateAqStrengthDisplay();
             updateTuneDisplay();
+            updateDurationDisplay();
+
+            // Add event listeners for parameter changes to update preview
+            ['crf-slider', 'preset-select', 'pixfmt-select', 'aq-mode-slider', 'aq-strength-slider', 'tune-select'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('change', updateProcessedPreview);
+                    element.addEventListener('input', updateProcessedPreview);
+                }
+            });
         });
     </script>
 </body>
