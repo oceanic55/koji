@@ -636,11 +636,13 @@
 
             // CRF
             document.getElementById('crf-slider').addEventListener('input', function() {
+                console.log('CRF slider changed to:', this.value);
                 parameters.crf = parseInt(this.value);
                 updateCrfDisplay();
                 updateCommand();
                 updateQualityMetrics();
                 updateProcessedPreview();
+                console.log('CRF update complete');
             });
 
             // Preset
@@ -791,6 +793,7 @@
 
         // Update quality metrics
         function updateQualityMetrics() {
+            console.log('Updating quality metrics, CRF:', parameters.crf);
             // Determine quality level based on CRF
             let qualityLevel = 'Unknown';
             
@@ -812,6 +815,7 @@
                 fileSizeText = `~${fileSizeGB} GB`;
             }
 
+            console.log('Quality level:', qualityLevel, 'File size:', fileSizeText);
             document.getElementById('quality-level').textContent = qualityLevel;
             document.getElementById('file-size').textContent = fileSizeText;
             document.getElementById('encoding-speed').textContent = presetSpeeds[parameters.preset] || 'Medium';
@@ -1149,6 +1153,7 @@
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('App initializing...');
             initializeEventListeners();
             updateCommand();
             updateQualityMetrics();
@@ -1160,6 +1165,7 @@
             updateAqStrengthDisplay();
             updateTuneDisplay();
             updateDurationDisplay();
+            console.log('App initialized successfully');
         });
     </script>
 </body>
