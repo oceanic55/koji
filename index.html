@@ -1,156 +1,287 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Setup Instructions</title>
-    <!-- Link to our local CSS file -->
-    <link rel="stylesheet" href="styles.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Miso Calc</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --muted: #9ca3af;
+      --accent: #22d3ee;
+      --text: #e5e7eb;
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      font-family: system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #0b1020, #111b2e);
+      color: var(--text);
+      margin: 0;
+      padding: 32px
+    }
+
+    .card {
+      max-width: 720px;
+      margin: 0 auto;
+      background: rgba(17, 24, 39, .75);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, .06);
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .35)
+    }
+
+    .header {
+      padding: 22px 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, .08)
+    }
+
+    h1 {
+      margin: 0;
+      font-weight: 800;
+      letter-spacing: .3px;
+      font-size: clamp(22px, 3.5vw, 30px)
+    }
+
+    .sub {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 14px
+    }
+
+    .body {
+      padding: 22px 24px;
+      display: grid;
+      gap: 20px
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      color: #cbd5e1;
+      margin-bottom: 8px
+    }
+
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 14px 12px;
+      background: #0b1220;
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 16px;
+      outline: none
+    }
+
+    input[type="number"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(34, 211, 238, .15)
+    }
+
+    .row {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr))
+    }
+
+    .result {
+      display: grid;
+      gap: 10px;
+      background: linear-gradient(180deg, rgba(34, 211, 238, .1), rgba(34, 211, 238, .05));
+      border: 1px solid rgba(34, 211, 238, .35);
+      padding: 16px;
+      border-radius: 14px
+    }
+
+    .result h2 {
+      margin: 0;
+      font-size: 18px
+    }
+
+    .big {
+      font-size: 28px;
+      font-weight: 800
+    }
+
+    .muted {
+      color: var(--muted)
+    }
+
+    .formula {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      background: #0b1220;
+      border: 1px solid rgba(255, 255, 255, .12);
+      padding: 12px;
+      border-radius: 10px
+    }
+
+    .foot {
+      padding: 16px 24px;
+      border-top: 1px solid rgba(255, 255, 255, .08);
+      color: #a1a1aa;
+      font-size: 12px
+    }
+
+    .note {
+      font-size: 13px;
+      color: #c7d2fe
+    }
+
+    a.btn {
+      display: inline-block;
+      margin-top: 8px;
+      color: #111827;
+      background: var(--accent);
+      text-decoration: none;
+      font-weight: 700;
+      padding: 10px 14px;
+      border-radius: 12px
+    }
+  </style>
 </head>
-<body id="top">
-    <div class="outer">
-        <!-- Mobile navigation toggle -->
-        <div class="mobile-nav-toggle">
-            <button id="menu-toggle" aria-label="Toggle navigation menu">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-        </div>
-        <div class="page-area">
-            <nav class="sidebar">
-                <div class="group">
-                    <div class="sb-section">Documentation</div>
-                    <ul>
-                        <li>
-                            <img src="img/icon-introduction.svg" alt="" class="icon" />
-                            <a class="active" href="#">Setup Guide</a>
-                        </li>
-                    </ul>
-                </div>
-            </nav>
-            <main class="content-main">
-                <h1>Setup Instructions</h1>
-                <div class="article-content">
-                    <h2>Setup</h2>
-                    <h3 id="go-to-working-folder">Go to working folder:</h3>
-                    <code>% cd "PWD"</code>
 
-                    <h3 id="write-readme">Write readme:</h3>
-                    <code>echo "# PWD" >> README.md</code>
-
-                    <code>git init</code>
-
-                    <p>Initialized empty Git repository in PWD/.git/</p>
-                    <code>% git status</code>
-                    <p>On branch main</p>
-                    <p>No commits yet</p>
-
-                    <p>Untracked files:<br>
-                    (use "git add <file>..." to include in what will be committed)</p>
-                    <ul>
-                        <li>nameX.txt</li>
-                        <li>README.md</li>
-                    </ul>
-
-                    <h3 id="stage-your-changes">Stage your changes:</h3>
-                    <code>git add .</code>
-                    <code>% git status</code>
-                    <p>On branch main</p>
-                    <p>No commits yet</p>
-
-                    <p>Changes to be committed:<br>
-                    (use "git rm --cached <file>..." to unstage)</p>
-                    <ul>
-                        <li>new file: nameX.txt</li>
-                        <li>new file: README.md</li>
-                    </ul>
-
-                    <h2>Initiate to Main</h2>
-                    <code>% cd PWD</code>
-
-                    <h3 id="initialize-a-new-git-repository">Initialize a new Git repository:</h3>
-                    <code>% git init</code>
-                    <p>Reinitialized existing Git repository in PWD/.git/</p>
-
-                    <h3 id="to-verify-what-branch-you-are-in">To verify what branch you are in</h3>
-                    <code>% git status</code>
-                    <p>On branch main<br>
-                    Your branch is up to date with 'origin/main'.<br>
-                    nothing to commit, working tree clean</p>
-
-                    <h3 id="list-all-remote-branches">List all remote branches</h3>
-                    <code>% git branch -r</code>
-                    <ul>
-                        <li>origin/main</li>
-                        <li>origin/temp</li>
-                    </ul>
-
-                    <h3 id="list-both-local-and-remote-branches">List both local and remote branches</h3>
-                    <code>% git branch -a</code>
-                    <ul>
-                        <li>* main</li>
-                        <li>remotes/origin/main</li>
-                        <li>remotes/origin/temp</li>
-                    </ul>
-
-                    <h3 id="to-verify-your-current-branch-and-status">To verify your current branch and status</h3>
-                    <code>% git status</code>
-
-                    <h3 id="to-pull-and-switch-to-a-specific-remote-branch">To pull and switch to a specific remote branch</h3>
-                    <code>% git checkout -b temp origin/temp</code>
-                    <p>branch 'temp' set up to track 'origin/temp'.<br>
-                    Switched to a new branch 'temp'</p>
-
-                    <h3 id="first-commit">First commit</h3>
-                    <code>% git commit -m "first commit"</code>
-
-                    <h3 id="fix-wrong-credentials">Fix wrong credentials</h3>
-                    <code>% git config --global user.email "XXXXXXX+USERNAME@users.noreply.github.com"</code>
-
-                    <p>on https://github.com/settings/emails > Keep my email addresses private > We'll remove your public profile email and use...</p>
-
-                    <code>% git commit --amend --reset-author --no-edit</code>
-
-                    <h3 id="final-steps">Final Steps</h3>
-                    <code>git checkout main</code>
-                    <p>Switch to the main branch</p>
-
-                    <code>git pull origin main</code>
-                    <p>Pull the latest changes</p>
-
-                    <code>git merge temp</code>
-                    <p>Merge the temp branch into main</p>
-
-                    <code>git push origin main</code>
-                    <p>Push the updated main branch to GitHub</p>
-                </div>
-            </main>
-            <aside class="rightbar">
-                <div class="rt-head">
-                    <img src="img/icon-introduction.svg" alt="" class="icon" />
-                    On this page
-                </div>
-                <ul class="toc-list">
-                    <li><a href="#top" id="back-to-top">Back to top ↑</a></li>
-                    <li><a href="#go-to-working-folder">Go to working folder</a></li>
-                    <li><a href="#write-readme">Write readme</a></li>
-                    <li><a href="#stage-your-changes">Stage your changes</a></li>
-                    <li><a href="#initialize-a-new-git-repository">Initialize a new Git repository</a></li>
-                    <li><a href="#to-verify-what-branch-you-are-in">To verify what branch you are in</a></li>
-                    <li><a href="#list-all-remote-branches">List all remote branches</a></li>
-                    <li><a href="#list-both-local-and-remote-branches">List both local and remote branches</a></li>
-                    <li><a href="#to-verify-your-current-branch-and-status">To verify your current branch and status</a></li>
-                    <li><a href="#to-pull-and-switch-to-a-specific-remote-branch">To pull and switch to a specific remote branch</a></li>
-                    <li><a href="#first-commit">First commit</a></li>
-                    <li><a href="#fix-wrong-credentials">Fix wrong credentials</a></li>
-                    <li><a href="#final-steps">Final Steps</a></li>
-                </ul>
-            </aside>
-        </div>
+<body>
+  <div class="card">
+    <div class="header">
+      <h1>Miso Salt Calculator (Metric)</h1>
+      <div class="sub">Calculate salt requirements based on protein and koji ingredients with customizable salt
+        percentage.</div>
     </div>
+    <div class="body">
+      <div class="row">
+        <div>
+          <label for="dryProtein">Dry Protein</label>
+          <select id="dryProtein">
+            <option value="chickpeas" selected>Chickpeas</option>
+            <option value="soybeans">Soybeans</option>
+            <option value="lentils">Lentils</option>
+            <option value="blackbeans">Black Beans</option>
+          </select>
+        </div>
+        <div>
+          <label for="dryProteinAmount"><span id="dryProteinLabel">Chickpeas</span> <span
+              class="muted">(grams)</span></label>
+          <input id="dryProteinAmount" type="number" min="0" step="1" />
+        </div>
+      </div>
 
-    <!-- Reference to external JavaScript file for menu functionality -->
-    <script src="js/menu.js"></script>
+      <div class="row">
+        <div>
+          <label for="protein">Cooked Protein <span class="muted">(grams)</span></label>
+          <input id="protein" type="number" min="0" step="1" />
+        </div>
+        <div>
+          <label for="koji">Koji <span class="muted">(grams)</span></label>
+          <input id="koji" type="number" min="0" step="1" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="percentage">Salt percentage</label>
+          <select id="percentage">
+            <option value="6">6%</option>
+            <option value="7">7%</option>
+            <option value="8">8%</option>
+            <option value="9">9%</option>
+            <option value="10" selected>10%</option>
+            <option value="11">11%</option>
+            <option value="12">12%</option>
+          </select>
+        </div>
+        <div>
+          <label for="units">Show salt as</label>
+          <select id="units">
+            <option value="g" selected>grams (g)</option>
+            <option value="kg">kilograms (kg)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="result">
+        <h2>Salt required</h2>
+        <div class="big" id="saltOut">—</div>
+        <div class="muted" id="percent"></div>
+        <div class="note">Formula: <span class="formula">Salt = (Protein + Koji) × Percentage</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const dryProteinEl = document.getElementById('dryProtein');
+    const dryProteinAmountEl = document.getElementById('dryProteinAmount');
+    const dryProteinLabelEl = document.getElementById('dryProteinLabel');
+    const proteinEl = document.getElementById('protein');
+    const kojiEl = document.getElementById('koji');
+    const percentageEl = document.getElementById('percentage');
+    const unitsEl = document.getElementById('units');
+    const saltOut = document.getElementById('saltOut');
+    const percent = document.getElementById('percent');
+
+    // Protein multipliers for different dry protein types
+    const proteinMultipliers = {
+      'chickpeas': 2.20,
+      'soybeans': 2.12,
+      'lentils': 2.40,
+      'blackbeans': 2.50
+    };
+
+    function calculateSalt(proteinGrams, kojiGrams, saltPercentage) {
+      const totalIngredients = proteinGrams + kojiGrams;
+      const saltRequired = totalIngredients * (saltPercentage / 100);
+      return Math.max(0, saltRequired);
+    }
+
+    function calc() {
+      const proteinG = Math.max(0, parseFloat(proteinEl.value || '0'));
+      const kojiG = Math.max(0, parseFloat(kojiEl.value || '0'));
+      const saltPct = parseFloat(percentageEl.value || '10');
+
+      const saltG = calculateSalt(proteinG, kojiG, saltPct);
+      const show = unitsEl.value;
+      const saltDisplay = show === 'kg' ? saltG / 1000 : saltG;
+      const unitLabel = show === 'kg' ? 'kg' : 'g';
+
+      saltOut.textContent = saltDisplay.toFixed(show === 'kg' ? 3 : 0) + ' ' + unitLabel;
+      percent.textContent = saltPct + '% of (protein + koji) = ' + saltPct + '% of ' + (proteinG + kojiG) + 'g';
+    }
+
+    function updateDryProteinLabel() {
+      const selectedOption = dryProteinEl.options[dryProteinEl.selectedIndex];
+      dryProteinLabelEl.textContent = selectedOption.text;
+      calculateProteinFromDryWeight();
+    }
+
+    function calculateProteinFromDryWeight() {
+      const dryWeight = parseFloat(dryProteinAmountEl.value || '0');
+      const selectedProtein = dryProteinEl.value;
+      const multiplier = proteinMultipliers[selectedProtein];
+
+      if (dryWeight > 0 && multiplier) {
+        const proteinAmount = Math.round(dryWeight * multiplier);
+        proteinEl.value = proteinAmount;
+        calc(); // Recalculate salt after updating protein
+      } else if (dryWeight === 0) {
+        proteinEl.value = '';
+        calc();
+      }
+    }
+
+    dryProteinEl.addEventListener('change', updateDryProteinLabel);
+    dryProteinAmountEl.addEventListener('input', calculateProteinFromDryWeight);
+    proteinEl.addEventListener('input', calc);
+    kojiEl.addEventListener('input', calc);
+    percentageEl.addEventListener('change', calc);
+    unitsEl.addEventListener('change', calc);
+    calc();
+  </script>
 </body>
+
 </html>
